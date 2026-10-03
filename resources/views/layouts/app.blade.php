@@ -119,7 +119,7 @@
         </div>
     </div>
 
-    <nav class="nav flex-column pt-2">
+    <nav class="nav flex-column pt-2 style="padding-bottom:80px">
 				<span class="text-uppercase px-3 py-2"
 							style="color:#5a8ab0;font-size:.65rem;letter-spacing:.08em">
 						Main Menu
@@ -151,7 +151,44 @@
 						<i class="bi bi-gear"></i> Settings
 				</a>
 		</nav>
+
+        {{-- User info at bottom of sidebar --}}
+        <div style="position:absolute;bottom:0;left:0;right:0;
+                    padding:1rem;border-top:1px solid rgba(255,255,255,.1)">
+            <div class="d-flex align-items-center gap-2">
+                {{-- Avatar circle --}}
+                <div style="width:34px;height:34px;border-radius:50%;
+                            background:rgba(255,255,255,.15);flex-shrink:0;
+                            display:flex;align-items:center;justify-content:center">
+                    <i class="bi bi-person text-white" style="font-size:.9rem"></i>
+                </div>
+                {{-- Name & email --}}
+                <div style="flex:1;min-width:0">
+                    <div style="color:#fff;font-size:.8rem;font-weight:600;
+                                white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                        {{ Auth::user()->name }}
+                    </div>
+                    <div style="color:#90b4d4;font-size:.7rem;
+                                white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                        {{ Auth::user()->email }}
+                    </div>
+                </div>
+                {{-- Logout button --}}
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit"
+                            class="btn btn-sm"
+                            style="background:rgba(255,255,255,.1);border:none;
+                                color:#fff;padding:4px 8px;border-radius:6px"
+                            title="Logout">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
 </div>
+
+
 
 {{-- ── MAIN CONTENT ─────────────────────────────── --}}
 <div id="main-content">
