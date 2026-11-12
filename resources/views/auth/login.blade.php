@@ -154,10 +154,10 @@
     <div class="text-center mb-4">
         <div style="color:rgba(255,255,255,.9);font-size:2rem;font-weight:800;
                     letter-spacing:-.02em">
-            EPAKSI GIS
+            SISTEM INFORMASI GEOSPASIAL SDA
         </div>
         <div style="color:rgba(255,255,255,.5);font-size:.82rem;margin-top:.25rem">
-            Irrigation Project Management System
+            Manajemen Proyek SDA Geoportal Engineering
         </div>
     </div>
 
@@ -168,8 +168,8 @@
             <div class="logo-circle">
                 <i class="bi bi-water fs-3"></i>
             </div>
-            <h4>Welcome Back</h4>
-            <p>Sign in to access your projects</p>
+            <h4>Selamat Datang</h4>
+            <p>masukkan user: "admin@epksi.com", password: "epaksi2024!"</p>
         </div>
 
         {{-- Form --}}
@@ -244,13 +244,13 @@
                             Remember me
                         </label>
                     </div>
-                    @if(Route::has('password.request'))
+                    {{-- @if(Route::has('password.request'))
                     <a href="{{ route('password.request') }}"
                        class="small text-decoration-none"
                        style="color:#1a3c5e">
                         Forgot password?
                     </a>
-                    @endif
+                    @endif --}}
                 </div>
 
                 {{-- Submit --}}
@@ -263,7 +263,7 @@
 
         <div class="login-footer">
             <i class="bi bi-shield-lock me-1"></i>
-            Access restricted to authorized personnel only
+            Access sistem hanya untuk internal Geoportal Engineering.
         </div>
 
     </div>

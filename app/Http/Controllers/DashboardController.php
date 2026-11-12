@@ -34,18 +34,24 @@ class DashboardController extends Controller
             ->pluck('total', 'status');
 
         // ── Projects by province (for chart) ──────────────
-        $provinceCounts = Project::selectRaw('province, count(*) as total')
-            ->whereNotNull('province')
-            ->groupBy('province')
+        // $provinceCounts = Project::selectRaw('province, count(*) as total')
+        //     ->whereNotNull('province')
+        //     ->groupBy('province')
+        //     ->orderByDesc('total')
+        //     ->take(6)
+        //     ->pluck('total', 'province');
+        $districtCounts = Project::selectRaw('district, count(*) as total')
+            ->whereNotNull('district')
+            ->groupBy('district')
             ->orderByDesc('total')
-            ->take(6)
-            ->pluck('total', 'province');
+            ->take(10)  // lebih banyak karena kabupaten lebih banyak dari provinsi
+            ->pluck('total', 'district');
 
         return view('dashboard', compact(
             'stats',
             'recentProjects',
             'statusCounts',
-            'provinceCounts'
+            'districtCounts'
         ));
     }
 

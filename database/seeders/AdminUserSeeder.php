@@ -18,6 +18,7 @@ class AdminUserSeeder extends Seeder
                 'name'     => 'Administrator',
                 'email'    => 'admin@epaksi.com',
                 'password' => Hash::make('epaksi2024!'),
+                'role'     => 'admin',
             ]
         );
 

@@ -103,12 +103,12 @@
                     <tr>
                         <th class="ps-4">#</th>
                         <th>Project</th>
-                        <th>Location</th>
-                        <th>Area (Ha)</th>
-                        <th>Files</th>
+                        <th>Lokasi</th>
+                        <th>Luas (Ha)</th>
+                        <th>File</th>
                         <th>Status</th>
                         <th>Start Date</th>
-                        <th class="text-end pe-4">Actions</th>
+                        <th class="text-end pe-4">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -152,10 +152,14 @@
                                    class="btn btn-sm btn-outline-primary" title="View">
                                     <i class="bi bi-eye"></i>
                                 </a>
+                                @if(Auth::user()->canEdit())
                                 <a href="{{ route('projects.edit', $project) }}"
                                    class="btn btn-sm btn-outline-secondary" title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </a>
+                                @endif
+
+                                @if(Auth::user()->canDelete())
                                 <form method="POST"
                                       action="{{ route('projects.destroy', $project) }}"
                                       onsubmit="return confirm('Delete this project?')">
@@ -164,6 +168,7 @@
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
+                                @endif
                             </div>
                         </td>
                     </tr>

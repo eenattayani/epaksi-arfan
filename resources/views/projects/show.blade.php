@@ -34,24 +34,24 @@
         </div>
     </div>
     <div class="d-flex gap-2">
-        <a href="{{ route('projects.edit', $project) }}" class="btn btn-outline-secondary btn-sm">
+        <a href="{{ route('projects.edit', $project) }}"
+           class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-pencil me-1"></i>Edit
         </a>
         <form method="POST" action="{{ route('projects.destroy', $project) }}"
-              onsubmit="return confirm('Delete this project and ALL its files?')">
+              onsubmit="return confirm('Hapus project ini beserta semua filenya?')">
             @csrf @method('DELETE')
             <button class="btn btn-outline-danger btn-sm">
-                <i class="bi bi-trash me-1"></i>Delete
+                <i class="bi bi-trash me-1"></i>Hapus
             </button>
         </form>
     </div>
 </div>
 
-{{-- ── Body ─────────────────────────────────────────── --}}
 <div class="row g-4">
 
 {{-- ════════════════════════════════════════════════════
-     LEFT COLUMN — Project info
+     LEFT COLUMN
      ════════════════════════════════════════════════════ --}}
 <div class="col-lg-4">
 
@@ -59,42 +59,55 @@
     <div class="card mb-4">
         <div class="card-header bg-white py-3">
             <h6 class="mb-0 fw-semibold">
-                <i class="bi bi-info-circle text-primary me-2"></i>Project Details
+                <i class="bi bi-info-circle text-primary me-2"></i>Detail Project
             </h6>
         </div>
         <div class="card-body">
             <dl class="row mb-0 small">
-                <dt class="col-5 text-muted fw-normal">Location</dt>
+                <dt class="col-5 text-muted fw-normal">Lokasi</dt>
                 <dd class="col-7">{{ $project->location ?: '—' }}</dd>
 
-                <dt class="col-5 text-muted fw-normal">District</dt>
+                <dt class="col-5 text-muted fw-normal">Kabupaten</dt>
                 <dd class="col-7">{{ $project->district ?: '—' }}</dd>
 
-                <dt class="col-5 text-muted fw-normal">Province</dt>
+                <dt class="col-5 text-muted fw-normal">Provinsi</dt>
                 <dd class="col-7">{{ $project->province ?: '—' }}</dd>
 
-                <dt class="col-5 text-muted fw-normal">Area</dt>
+                <dt class="col-5 text-muted fw-normal">Luas Area</dt>
                 <dd class="col-7">
-                    {{ $project->area_hectare ? number_format($project->area_hectare,2).' Ha' : '—' }}
+                    {{ $project->area_hectare
+                        ? number_format($project->area_hectare, 2) . ' Ha'
+                        : '—' }}
                 </dd>
 
-                <dt class="col-5 text-muted fw-normal">Start</dt>
-                <dd class="col-7">{{ $project->start_date?->format('d M Y') ?? '—' }}</dd>
-
-                <dt class="col-5 text-muted fw-normal">End</dt>
-                <dd class="col-7">{{ $project->end_date?->format('d M Y') ?? '—' }}</dd>
-
-                <dt class="col-5 text-muted fw-normal">GIS Files</dt>
+                <dt class="col-5 text-muted fw-normal">Mulai</dt>
                 <dd class="col-7">
-                    <span class="badge bg-light text-dark border">
-                        {{ $project->files->count() }} file(s)
+                    {{ $project->start_date?->format('d M Y') ?? '—' }}
+                </dd>
+
+                <dt class="col-5 text-muted fw-normal">Selesai</dt>
+                <dd class="col-7">
+                    {{ $project->end_date?->format('d M Y') ?? '—' }}
+                </dd>
+
+                <dt class="col-5 text-muted fw-normal">KML Layers</dt>
+                <dd class="col-7">
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                        {{ $project->kmlFiles->count() }} layer
                     </span>
                 </dd>
 
-                <dt class="col-5 text-muted fw-normal">Photos</dt>
+                <dt class="col-5 text-muted fw-normal">Dokumen</dt>
                 <dd class="col-7">
                     <span class="badge bg-light text-dark border">
-                        {{ $project->photos->count() }} photo(s)
+                        {{ $project->files->where('file_type','document')->count() }} file
+                    </span>
+                </dd>
+
+                <dt class="col-5 text-muted fw-normal">Foto</dt>
+                <dd class="col-7">
+                    <span class="badge bg-light text-dark border">
+                        {{ $project->photos->count() }} foto
                     </span>
                 </dd>
             </dl>
@@ -106,7 +119,7 @@
     <div class="card mb-4">
         <div class="card-header bg-white py-3">
             <h6 class="mb-0 fw-semibold">
-                <i class="bi bi-text-paragraph text-secondary me-2"></i>Description
+                <i class="bi bi-text-paragraph text-secondary me-2"></i>Deskripsi
             </h6>
         </div>
         <div class="card-body small text-muted" style="white-space:pre-line">
@@ -123,129 +136,138 @@
             </h6>
         </div>
         <div class="card-body d-grid gap-2">
-            <button class="btn btn-success btn-sm" data-bs-toggle="modal"
-                    data-bs-target="#uploadFileModal">
-                <i class="bi bi-upload me-1"></i> Upload GIS File
+            @if(Auth::user()->canEdit())
+            <button class="btn btn-success btn-sm text-start"
+                    data-bs-toggle="modal" data-bs-target="#uploadKmlModal">
+                <i class="bi bi-globe me-2"></i>Upload KML Layer
             </button>
-            <button class="btn btn-warning btn-sm text-dark" data-bs-toggle="modal"
-                    data-bs-target="#uploadPhotoModal">
-                <i class="bi bi-camera me-1"></i> Upload Photos
+            <button class="btn btn-outline-primary btn-sm text-start"
+                    data-bs-toggle="modal" data-bs-target="#uploadDocModal">
+                <i class="bi bi-file-earmark-text me-2"></i>Upload Dokumen
             </button>
-            <a href="{{ route('projects.map', $project) }}" class="btn btn-primary btn-sm">
-                <i class="bi bi-map me-1"></i> View on Map
-                <span class="badge bg-white text-primary ms-1" style="font-size:.6rem">Stage 4</span>
+            <button class="btn btn-warning text-dark btn-sm text-start"
+                    data-bs-toggle="modal" data-bs-target="#uploadPhotoModal">
+                <i class="bi bi-camera me-2"></i>Upload Foto
+            </button>
+            @endif
+            @if($project->kmlFiles->count() > 0)
+            <a href="{{ route('projects.map', $project) }}"
+               class="btn btn-primary btn-sm text-start">
+                <i class="bi bi-map me-2"></i>Buka di Peta
             </a>
+            @endif
         </div>
     </div>
 
 </div>
 
 {{-- ════════════════════════════════════════════════════
-     RIGHT COLUMN — Files & Photos
+     RIGHT COLUMN
      ════════════════════════════════════════════════════ --}}
 <div class="col-lg-8">
 
-    {{-- ── GIS FILES ──────────────────────────────── --}}
+    {{-- ── KML LAYERS ──────────────────────────────── --}}
     <div class="card mb-4">
         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
             <h6 class="mb-0 fw-semibold">
-                <i class="bi bi-layers text-success me-2"></i>
-                GIS Files
-                <span class="badge bg-secondary ms-1">{{ $project->files->count() }}</span>
+                <i class="bi bi-globe text-success me-2"></i>
+                KML Layers
+                <span class="badge bg-success ms-1">
+                    {{ $project->kmlFiles->count() }}
+                </span>
             </h6>
-            <button class="btn btn-sm btn-success" data-bs-toggle="modal"
-                    data-bs-target="#uploadFileModal">
-                <i class="bi bi-plus-lg me-1"></i> Upload
+            @if(Auth::user()->canEdit())
+            <button class="btn btn-sm btn-success"
+                    data-bs-toggle="modal" data-bs-target="#uploadKmlModal">
+                <i class="bi bi-plus-lg me-1"></i>Upload KML
             </button>
+            @endif
         </div>
-
         <div class="card-body p-0">
-            @if($project->files->isEmpty())
+            @if($project->kmlFiles->isEmpty())
                 <div class="text-center py-4 text-muted small">
-                    <i class="bi bi-cloud-upload fs-2 d-block mb-2 opacity-50"></i>
-                    No GIS files uploaded yet.
+                    <i class="bi bi-globe fs-2 d-block mb-2 opacity-25"></i>
+                    Belum ada KML layer. Upload file .kml untuk ditampilkan di peta.
                 </div>
             @else
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0 small">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-3">File</th>
-                            <th>Type</th>
-                            <th>Size</th>
-                            <th>Visible</th>
-                            <th>Color</th>
-                            <th class="pe-3 text-end">Actions</th>
+                            <th class="ps-3">Nama File</th>
+                            <th>Ukuran</th>
+                            <th>Warna Panel</th>
+                            <th>Tampil di Peta</th>
+                            <th class="pe-3 text-end">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($project->files as $file)
+                        @foreach($project->kmlFiles as $file)
                         <tr>
                             <td class="ps-3">
-                                @php
-                                    $icons = ['kml'=>'bi-globe text-success',
-                                              'shp'=>'bi-layers text-primary',
-                                              'document'=>'bi-file-earmark-text text-warning'];
-                                    $icon = $icons[$file->file_type] ?? 'bi-file text-secondary';
-                                @endphp
-                                <i class="bi {{ $icon }} me-1"></i>
+                                <i class="bi bi-globe text-success me-1"></i>
                                 <span title="{{ $file->original_name }}">
-                                    {{ Str::limit($file->original_name, 30) }}
+                                    {{ Str::limit($file->original_name, 35) }}
                                 </span>
                                 @if($file->notes)
-                                    <br><small class="text-muted">{{ $file->notes }}</small>
+                                    <br>
+                                    <small class="text-muted">{{ $file->notes }}</small>
                                 @endif
-                            </td>
-                            <td>
-                                <span class="badge bg-light text-dark border text-uppercase">
-                                    {{ $file->file_type }}
-                                </span>
                             </td>
                             <td class="text-muted">{{ $file->file_size_human }}</td>
                             <td>
-                                {{-- Toggle switch — only meaningful for KML --}}
-                                @if($file->file_type === 'kml')
+                                {{-- #5 Color sebagai label panel saja --}}
+                                <div class="d-flex align-items-center gap-2">
+                                    <div style="width:16px;height:16px;border-radius:50%;
+                                                background:{{ $file->layer_color }};
+                                                border:2px solid rgba(0,0,0,.1);
+                                                flex-shrink:0"></div>
+                                    <input type="color"
+                                           class="form-control form-control-color p-0 border-0"
+                                           value="{{ $file->layer_color }}"
+                                           data-file-id="{{ $file->id }}"
+                                           data-url="{{ route('projects.files.color', [$project, $file]) }}"
+                                           title="Warna penanda di panel layer"
+                                           style="width:24px;height:24px;cursor:pointer;
+                                                  background:none">
+                                    <small class="text-muted" style="font-size:.7rem">
+                                        Panel saja
+                                    </small>
+                                </div>
+                            </td>
+                            <td>
                                 <div class="form-check form-switch mb-0">
                                     <input class="form-check-input layer-toggle"
                                            type="checkbox"
                                            {{ $file->is_visible ? 'checked' : '' }}
                                            data-file-id="{{ $file->id }}"
                                            data-url="{{ route('projects.files.toggle', [$project, $file]) }}"
-                                           title="Toggle layer visibility">
+                                           title="Toggle visibilitas di peta">
                                 </div>
-                                @else
-                                <span class="text-muted">—</span>
-                                @endif
-                            </td>
-                            <td>
-                                @if($file->file_type === 'kml')
-                                <input type="color"
-                                       class="form-control form-control-color layer-color p-0 border-0"
-                                       value="{{ $file->layer_color }}"
-                                       data-file-id="{{ $file->id }}"
-                                       data-url="{{ route('projects.files.color', [$project, $file]) }}"
-                                       title="Change layer color"
-                                       style="width:28px;height:28px;cursor:pointer">
-                                @else
-                                <span class="text-muted">—</span>
-                                @endif
                             </td>
                             <td class="pe-3 text-end">
                                 <div class="d-flex gap-1 justify-content-end">
+                                    <a href="{{ route('projects.map', $project) }}"
+                                       class="btn btn-sm btn-outline-success"
+                                       title="Lihat di peta">
+                                        <i class="bi bi-map"></i>
+                                    </a>
                                     <a href="{{ $file->public_url }}"
                                        target="_blank"
                                        class="btn btn-sm btn-outline-secondary"
                                        title="Download">
                                         <i class="bi bi-download"></i>
                                     </a>
+                                    @if(Auth::user()->canDelete())
                                     <form method="POST"
                                           action="{{ route('projects.files.destroy', [$project, $file]) }}"
-                                          onsubmit="return confirm('Delete this file?')">
+                                          onsubmit="return confirm('Hapus file ini?')">
                                         @csrf @method('DELETE')
-                                        <button class="btn btn-sm btn-outline-danger" title="Delete">
+                                        <button class="btn btn-sm btn-outline-danger">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -253,49 +275,144 @@
                     </tbody>
                 </table>
             </div>
+            @if($project->kmlFiles->count() > 0)
+            <div class="px-3 py-2 border-top bg-light-subtle">
+                <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Warna panel hanya untuk penanda di daftar layer.
+                    Warna tampilan di peta mengikuti style dalam file KML.
+                </small>
+            </div>
+            @endif
             @endif
         </div>
     </div>
 
-    {{-- ── PHOTOS ──────────────────────────────────── --}}
+    {{-- ── DOKUMEN PROYEK ───────────────────────────── --}}
+    <div class="card mb-4">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-semibold">
+                <i class="bi bi-file-earmark-text text-primary me-2"></i>
+                Dokumen Proyek
+                <span class="badge bg-secondary ms-1">
+                    {{ $project->files->where('file_type','document')->count() }}
+                </span>
+            </h6>
+            <button class="btn btn-sm btn-outline-primary"
+                    data-bs-toggle="modal" data-bs-target="#uploadDocModal">
+                <i class="bi bi-plus-lg me-1"></i>Upload Dokumen
+            </button>
+        </div>
+        <div class="card-body p-0">
+            @php
+                $documents = $project->files->where('file_type','document');
+            @endphp
+            @if($documents->isEmpty())
+                <div class="text-center py-4 text-muted small">
+                    <i class="bi bi-file-earmark fs-2 d-block mb-2 opacity-25"></i>
+                    Belum ada dokumen. Upload PDF, Word, atau Excel.
+                </div>
+            @else
+            <div class="list-group list-group-flush">
+                @foreach($documents as $doc)
+                @php
+                    $ext = pathinfo($doc->original_name, PATHINFO_EXTENSION);
+                    $iconMap = [
+                        'pdf'  => ['bi-file-earmark-pdf',  'text-danger'],
+                        'doc'  => ['bi-file-earmark-word', 'text-primary'],
+                        'docx' => ['bi-file-earmark-word', 'text-primary'],
+                        'xls'  => ['bi-file-earmark-excel','text-success'],
+                        'xlsx' => ['bi-file-earmark-excel','text-success'],
+                        'txt'  => ['bi-file-earmark-text', 'text-secondary'],
+                    ];
+                    $icon = $iconMap[strtolower($ext)] ?? ['bi-file-earmark','text-secondary'];
+                @endphp
+                <div class="list-group-item px-3 py-2">
+                    <div class="d-flex align-items-center gap-3">
+                        <i class="bi {{ $icon[0] }} {{ $icon[1] }} fs-4 flex-shrink-0"></i>
+                        <div style="flex:1;min-width:0">
+                            <div class="small fw-medium text-truncate">
+                                {{ $doc->original_name }}
+                            </div>
+                            <div class="text-muted" style="font-size:.72rem">
+                                {{ strtoupper($ext) }} · {{ $doc->file_size_human }}
+                                @if($doc->notes)
+                                    · {{ $doc->notes }}
+                                @endif
+                            </div>
+                        </div>
+                        <div class="d-flex gap-1 flex-shrink-0">
+                            @if(strtolower(pathinfo($doc->original_name, PATHINFO_EXTENSION)) === 'pdf')
+                            <a href="{{ route('projects.files.view', [$project, $doc]) }}"
+                                class="btn btn-sm btn-outline-primary"
+                                title="Lihat PDF">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            @endif
+                            <a href="{{ $doc->public_url }}"
+                               target="_blank"
+                               class="btn btn-sm btn-outline-secondary"
+                               title="Download/Buka">
+                                <i class="bi bi-download"></i>
+                            </a>
+                            <form method="POST"
+                                  action="{{ route('projects.files.destroy', [$project, $doc]) }}"
+                                  onsubmit="return confirm('Hapus dokumen ini?')">
+                                @csrf @method('DELETE')
+                                <button class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+            @endif
+        </div>
+    </div>
+
+    {{-- ── FOTO PROYEK ──────────────────────────────── --}}
     <div class="card">
         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
             <h6 class="mb-0 fw-semibold">
                 <i class="bi bi-images text-warning me-2"></i>
-                Photos
-                <span class="badge bg-secondary ms-1">{{ $project->photos->count() }}</span>
+                Foto Proyek
+                <span class="badge bg-secondary ms-1">
+                    {{ $project->photos->count() }}
+                </span>
             </h6>
-            <button class="btn btn-sm btn-warning text-dark" data-bs-toggle="modal"
-                    data-bs-target="#uploadPhotoModal">
-                <i class="bi bi-plus-lg me-1"></i> Upload
+            <button class="btn btn-sm btn-warning text-dark"
+                    data-bs-toggle="modal" data-bs-target="#uploadPhotoModal">
+                <i class="bi bi-plus-lg me-1"></i>Upload Foto
             </button>
         </div>
-
         <div class="card-body">
             @if($project->photos->isEmpty())
                 <div class="text-center py-3 text-muted small">
-                    <i class="bi bi-images fs-2 d-block mb-2 opacity-50"></i>
-                    No photos uploaded yet.
+                    <i class="bi bi-images fs-2 d-block mb-2 opacity-25"></i>
+                    Belum ada foto proyek.
                 </div>
             @else
             <div class="row g-2">
                 @foreach($project->photos as $photo)
                 <div class="col-6 col-md-4 col-lg-3">
-                    <div class="position-relative" style="aspect-ratio:1;overflow:hidden;border-radius:8px">
+                    <div class="position-relative"
+                         style="aspect-ratio:1;overflow:hidden;border-radius:8px">
                         <img src="{{ $photo->public_url }}"
-                             alt="{{ $photo->caption ?? 'Project photo' }}"
+                             alt="{{ $photo->caption ?? 'Foto proyek' }}"
                              class="w-100 h-100"
                              style="object-fit:cover;cursor:pointer"
-                             onclick="openLightbox('{{ $photo->public_url }}', '{{ $photo->caption }}')">
-                        {{-- Delete overlay --}}
+                             onclick="openLightbox('{{ $photo->public_url }}',
+                                                   '{{ $photo->caption }}')">
                         <div class="position-absolute top-0 end-0 p-1">
                             <form method="POST"
                                   action="{{ route('projects.photos.destroy', [$project, $photo]) }}"
-                                  onsubmit="return confirm('Delete this photo?')">
+                                  onsubmit="return confirm('Hapus foto ini?')">
                                 @csrf @method('DELETE')
                                 <button class="btn btn-sm btn-danger rounded-circle"
-                                        style="width:26px;height:26px;padding:0;font-size:.7rem"
-                                        title="Delete">
+                                        style="width:24px;height:24px;padding:0;
+                                               font-size:.7rem">
                                     <i class="bi bi-x"></i>
                                 </button>
                             </form>
@@ -320,13 +437,13 @@
      MODALS
      ════════════════════════════════════════════════════ --}}
 
-{{-- Upload GIS File Modal --}}
-<div class="modal fade" id="uploadFileModal" tabindex="-1">
+{{-- Modal Upload KML --}}
+<div class="modal fade" id="uploadKmlModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header border-0 pb-0">
                 <h5 class="modal-title fw-semibold">
-                    <i class="bi bi-upload me-2 text-success"></i>Upload GIS File
+                    <i class="bi bi-globe me-2 text-success"></i>Upload KML Layer
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
@@ -334,60 +451,67 @@
                   action="{{ route('projects.files.store', $project) }}"
                   enctype="multipart/form-data">
                 @csrf
+                <input type="hidden" name="file_type" value="kml">
                 <div class="modal-body">
 
+                    {{-- Info box --}}
+                    <div class="alert alert-success py-2 small mb-3">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Hanya file <strong>.kml</strong> yang diterima.
+                        File akan langsung tampil di Google Maps.
+                    </div>
+
                     {{-- Drop Zone --}}
-                    <div id="dropZone"
-                         class="border-2 border-dashed rounded-3 text-center p-4 mb-3"
-                         style="border:2px dashed #dee2e6;cursor:pointer;transition:.2s"
-                         onclick="document.getElementById('fileInput').click()">
-                        <i class="bi bi-cloud-upload fs-2 text-muted"></i>
-                        <p class="mb-0 small text-muted mt-1">
-                            Click or drag file here<br>
-                            <span class="text-muted" style="font-size:.75rem">
-                                KML: .kml | SHP: .shp .zip | Docs: .pdf .docx .xlsx
-                            </span>
+                    <div id="kmlDropZone"
+                         class="text-center p-4 mb-3 rounded-3"
+                         style="border:2px dashed #198754;cursor:pointer;
+                                background:#f8fff8;transition:.2s"
+                         onclick="document.getElementById('kmlFileInput').click()">
+                        <i class="bi bi-globe fs-2 text-success opacity-50"></i>
+                        <p class="mb-0 small text-muted mt-2">
+                            Klik atau drag file <strong>.kml</strong> ke sini
                         </p>
                     </div>
-                    <input type="file" id="fileInput" name="file" class="d-none"
-                           accept=".kml,.shp,.zip,.dbf,.prj,.shx,.pdf,.doc,.docx,.xls,.xlsx,.txt">
-                    <div id="selectedFileName" class="small text-success mb-3 d-none">
+                    <input type="file" id="kmlFileInput" name="file"
+                           class="d-none" accept=".kml">
+                    <div id="kmlFileName" class="small text-success mb-3 d-none">
                         <i class="bi bi-check-circle-fill me-1"></i>
                         <span></span>
                     </div>
 
                     <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-medium small">File Type <span class="text-danger">*</span></label>
-                            <select name="file_type" id="fileTypeSelect" class="form-select form-select-sm">
-                                <option value="kml">KML — Map Layer</option>
-                                <option value="shp">SHP — Shapefile</option>
-                                <option value="document">Document (PDF/Office)</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6" id="colorPickerGroup">
-                            <label class="form-label fw-medium small">Layer Color</label>
+                        <div class="col-12">
+                            <label class="form-label fw-medium small">
+                                Warna Penanda di Panel Layer
+                            </label>
                             <div class="d-flex align-items-center gap-2">
-                                <input type="color" name="layer_color" value="#FF0000"
+                                <input type="color" name="layer_color"
+                                       value="#FF0000"
                                        class="form-control form-control-color"
                                        style="width:40px;height:32px">
-                                <small class="text-muted">Shown on map</small>
+                                <small class="text-muted">
+                                    Hanya sebagai penanda warna di daftar layer,
+                                    bukan warna di peta
+                                </small>
                             </div>
                         </div>
                         <div class="col-12">
-                            <label class="form-label fw-medium small">Notes (optional)</label>
-                            <input type="text" name="notes" class="form-control form-control-sm"
-                                   placeholder="e.g. Main canal network layer">
+                            <label class="form-label fw-medium small">
+                                Keterangan (opsional)
+                            </label>
+                            <input type="text" name="notes"
+                                   class="form-control form-control-sm"
+                                   placeholder="cth: Jaringan saluran utama 2024">
                         </div>
                     </div>
 
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-secondary btn-sm"
-                            data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success btn-sm">
-                        <i class="bi bi-upload me-1"></i> Upload File
+                            data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success btn-sm"
+                            id="kmlUploadBtn" disabled>
+                        <i class="bi bi-upload me-1"></i>Upload KML
                     </button>
                 </div>
             </form>
@@ -395,13 +519,69 @@
     </div>
 </div>
 
-{{-- Upload Photos Modal --}}
+{{-- Modal Upload Dokumen --}}
+<div class="modal fade" id="uploadDocModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-semibold">
+                    <i class="bi bi-file-earmark-text me-2 text-primary"></i>
+                    Upload Dokumen
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST"
+                  action="{{ route('projects.files.store', $project) }}"
+                  enctype="multipart/form-data">
+                @csrf
+                <input type="hidden" name="file_type" value="document">
+                <div class="modal-body">
+
+                    <div class="alert alert-primary py-2 small mb-3">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Format yang diterima:
+                        <strong>PDF, DOC, DOCX, XLS, XLSX, TXT</strong>
+                        (maks. 50MB)
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-medium small">
+                            Pilih Dokumen <span class="text-danger">*</span>
+                        </label>
+                        <input type="file" name="file"
+                               class="form-control form-control-sm"
+                               accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
+                               required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium small">
+                            Keterangan (opsional)
+                        </label>
+                        <input type="text" name="notes"
+                               class="form-control form-control-sm"
+                               placeholder="cth: Laporan perencanaan teknis">
+                    </div>
+
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary btn-sm"
+                            data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-upload me-1"></i>Upload Dokumen
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{-- Modal Upload Foto --}}
 <div class="modal fade" id="uploadPhotoModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header border-0 pb-0">
                 <h5 class="modal-title fw-semibold">
-                    <i class="bi bi-camera me-2 text-warning"></i>Upload Photos
+                    <i class="bi bi-camera me-2 text-warning"></i>Upload Foto
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
@@ -410,32 +590,31 @@
                   enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body">
-
                     <div class="mb-3">
                         <label class="form-label fw-medium small">
-                            Select Photos <span class="text-danger">*</span>
-                            <span class="text-muted">(up to 10, max 5MB each)</span>
+                            Pilih Foto <span class="text-danger">*</span>
+                            <span class="text-muted">(maks. 10 foto, 5MB per foto)</span>
                         </label>
-                        <input type="file" name="photos[]" class="form-control form-control-sm"
+                        <input type="file" name="photos[]"
+                               class="form-control form-control-sm"
                                multiple accept="image/jpeg,image/png,image/webp"
                                id="photoInput">
                     </div>
-
-                    {{-- Preview strip --}}
                     <div id="photoPreview" class="d-flex gap-2 flex-wrap mb-3"></div>
-
                     <div>
-                        <label class="form-label fw-medium small">Caption (optional)</label>
-                        <input type="text" name="caption" class="form-control form-control-sm"
-                               placeholder="e.g. Kondisi saluran primer, Jan 2024">
+                        <label class="form-label fw-medium small">
+                            Keterangan (opsional)
+                        </label>
+                        <input type="text" name="caption"
+                               class="form-control form-control-sm"
+                               placeholder="cth: Kondisi saluran primer, Jan 2024">
                     </div>
-
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-secondary btn-sm"
-                            data-bs-dismiss="modal">Cancel</button>
+                            data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-warning text-dark btn-sm">
-                        <i class="bi bi-upload me-1"></i> Upload Photos
+                        <i class="bi bi-upload me-1"></i>Upload Foto
                     </button>
                 </div>
             </form>
@@ -448,11 +627,13 @@
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content bg-dark border-0">
             <div class="modal-body p-2 text-center position-relative">
-                <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-2"
+                <button type="button"
+                        class="btn-close btn-close-white position-absolute top-0 end-0 m-2"
                         data-bs-dismiss="modal"></button>
                 <img id="lightboxImg" src="" alt=""
                      class="img-fluid rounded" style="max-height:80vh">
-                <p id="lightboxCaption" class="text-white-50 small mt-2 mb-0"></p>
+                <p id="lightboxCaption"
+                   class="text-white-50 small mt-2 mb-0"></p>
             </div>
         </div>
     </div>
@@ -462,46 +643,53 @@
 
 @push('scripts')
 <script>
-// ── Drag & Drop Upload ────────────────────────────────
-const dropZone   = document.getElementById('dropZone');
-const fileInput  = document.getElementById('fileInput');
-const nameDisplay = document.getElementById('selectedFileName');
+// ── KML Drop Zone ─────────────────────────────────────
+const kmlInput    = document.getElementById('kmlFileInput');
+const kmlDropZone = document.getElementById('kmlDropZone');
+const kmlFileName = document.getElementById('kmlFileName');
+const kmlUploadBtn = document.getElementById('kmlUploadBtn');
 
-fileInput?.addEventListener('change', () => {
-    if (fileInput.files.length) {
-        nameDisplay.querySelector('span').textContent = fileInput.files[0].name;
-        nameDisplay.classList.remove('d-none');
-        dropZone.style.borderColor = '#198754';
+function handleKmlFile(file) {
+    if (!file) return;
+
+    // Validasi ekstensi di frontend
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (ext !== 'kml') {
+        alert('Hanya file .kml yang diterima!');
+        return;
     }
+
+    kmlFileName.querySelector('span').textContent = file.name;
+    kmlFileName.classList.remove('d-none');
+    kmlDropZone.style.borderColor = '#198754';
+    kmlDropZone.style.background  = '#f0fff4';
+    kmlUploadBtn.disabled = false;
+}
+
+kmlInput?.addEventListener('change', () => {
+    if (kmlInput.files[0]) handleKmlFile(kmlInput.files[0]);
 });
 
-dropZone?.addEventListener('dragover', e => {
+kmlDropZone?.addEventListener('dragover', e => {
     e.preventDefault();
-    dropZone.style.background = '#f0fff4';
-    dropZone.style.borderColor = '#198754';
+    kmlDropZone.style.background = '#e8f5e9';
 });
 
-dropZone?.addEventListener('dragleave', () => {
-    dropZone.style.background = '';
-    dropZone.style.borderColor = '#dee2e6';
+kmlDropZone?.addEventListener('dragleave', () => {
+    kmlDropZone.style.background = '#f8fff8';
 });
 
-dropZone?.addEventListener('drop', e => {
+kmlDropZone?.addEventListener('drop', e => {
     e.preventDefault();
-    dropZone.style.background = '';
-    const dt = e.dataTransfer;
-    if (dt.files.length) {
-        fileInput.files = dt.files;
-        nameDisplay.querySelector('span').textContent = dt.files[0].name;
-        nameDisplay.classList.remove('d-none');
-        dropZone.style.borderColor = '#198754';
+    kmlDropZone.style.background = '#f8fff8';
+    const file = e.dataTransfer.files[0];
+    if (file) {
+        // Inject ke input
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        kmlInput.files = dt.files;
+        handleKmlFile(file);
     }
-});
-
-// Show/hide color picker for non-KML types
-document.getElementById('fileTypeSelect')?.addEventListener('change', function () {
-    document.getElementById('colorPickerGroup').style.display =
-        this.value === 'kml' ? 'block' : 'none';
 });
 
 // ── Photo Preview ─────────────────────────────────────
@@ -513,44 +701,46 @@ document.getElementById('photoInput')?.addEventListener('change', function () {
         reader.onload = e => {
             const img = document.createElement('img');
             img.src = e.target.result;
-            img.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:6px';
+            img.style.cssText =
+                'width:60px;height:60px;object-fit:cover;border-radius:6px';
             preview.appendChild(img);
         };
         reader.readAsDataURL(file);
     });
 });
 
-// ── Layer Toggle (AJAX) ───────────────────────────────
+// ── Layer Toggle AJAX ─────────────────────────────────
 document.querySelectorAll('.layer-toggle').forEach(toggle => {
     toggle.addEventListener('change', function () {
         fetch(this.dataset.url, {
-            method: 'PATCH',
+            method:  'PATCH',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                'Accept': 'application/json',
+                'Accept':       'application/json',
             }
         })
         .then(r => r.json())
         .then(data => {
-            // Visual feedback
             const row = this.closest('tr');
-            row.style.opacity = data.is_visible ? '1' : '0.45';
+            if (row) row.style.opacity = data.is_visible ? '1' : '0.5';
         });
     });
 });
 
-// ── Layer Color (AJAX) ────────────────────────────────
+// ── Layer Color AJAX ──────────────────────────────────
 document.querySelectorAll('.layer-color').forEach(picker => {
     picker.addEventListener('change', function () {
         fetch(this.dataset.url, {
-            method: 'PATCH',
+            method:  'PATCH',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                 'Content-Type': 'application/json',
-                'Accept': 'application/json',
+                'Accept':       'application/json',
             },
             body: JSON.stringify({ color: this.value })
         });
+        // Update dot preview
+        this.previousElementSibling.style.background = this.value;
     });
 });
 
@@ -560,12 +750,5 @@ function openLightbox(src, caption) {
     document.getElementById('lightboxCaption').textContent = caption ?? '';
     new bootstrap.Modal(document.getElementById('lightboxModal')).show();
 }
-
-// ── Re-open modal if validation failed ────────────────
-@if($errors->any())
-    // Re-open whichever modal had the error
-    const modal = new bootstrap.Modal(document.getElementById('uploadFileModal'));
-    modal.show();
-@endif
 </script>
 @endpush

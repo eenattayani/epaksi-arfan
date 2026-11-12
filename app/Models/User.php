@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
     ];
 
     /**
@@ -44,5 +45,58 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    // ── Role helper methods ────────────────────────────
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isEditor(): bool
+    {
+        return $this->role === 'editor';
+    }
+
+    public function isViewer(): bool
+    {
+        return $this->role === 'viewer';
+    }
+
+    public function canEdit(): bool
+    {
+        return in_array($this->role, ['admin', 'editor']);
+    }
+
+    public function canDelete(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function canManageUsers(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    // Label & warna untuk tampilan UI
+    public function getRoleLabelAttribute(): string
+    {
+        return match($this->role) {
+            'admin'  => 'Administrator',
+            'editor' => 'Editor',
+            'viewer' => 'Viewer',
+            default  => 'Viewer',
+        };
+    }
+
+    public function getRoleColorAttribute(): string
+    {
+        return match($this->role) {
+            'admin'  => 'danger',
+            'editor' => 'warning',
+            'viewer' => 'secondary',
+            default  => 'secondary',
+        };
     }
 }

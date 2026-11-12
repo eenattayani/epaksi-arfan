@@ -114,7 +114,7 @@
             </div>
             <div>
                 <h5>GE GIS</h5>
-                <small>Irrigation Project Management</small>
+                <small>Manajemen Proyek SDA</small>
             </div>
         </div>
     </div>
@@ -139,6 +139,13 @@
 					class="nav-link {{ request()->routeIs('map.explorer') ? 'active' : '' }}">
 						<i class="bi bi-map"></i> Map Explorer
 				</a>
+
+                @if(Auth::user()->isAdmin())
+                <a href="{{ route('users.index') }}" 
+                    class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                        <i class="bi bi-people"></i> Manajemen User
+                </a>
+                @endif
 
 				<hr style="border-color:rgba(255,255,255,.1);margin:.5rem 1rem">
 

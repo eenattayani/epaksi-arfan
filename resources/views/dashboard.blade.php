@@ -13,7 +13,7 @@
     <div>
         <h4 class="fw-bold mb-1">Dashboard</h4>
         <p class="text-muted small mb-0">
-            Geoportal Engineering - EPAKSI Irrigation Project Management System
+            Geoportal Engineering - GIS SDA Project Management System
             <span class="text-muted mx-2">·</span>
             {{ now()->format('l, d F Y') }}
         </p>
@@ -150,7 +150,7 @@
     </div>
 
     {{-- Province Chart --}}
-    <div class="col-md-8">
+    {{-- <div class="col-md-8">
         <div class="card h-100">
             <div class="card-header bg-white py-3">
                 <h6 class="mb-0 fw-semibold">
@@ -165,6 +165,28 @@
                     </div>
                 @else
                     <canvas id="provinceChart" style="max-height:220px"></canvas>
+                @endif
+            </div>
+        </div>
+    </div> --}}
+
+    {{-- Chart Kabupaten/Kota --}}
+    <div class="col-md-8">
+        <div class="card h-100">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-semibold">
+                    <i class="bi bi-bar-chart text-success me-2"></i>
+                    Project per Kabupaten/Kota
+                </h6>
+            </div>
+            <div class="card-body">
+                @if($districtCounts->isEmpty())
+                    <div class="text-center py-4 text-muted small">
+                        <i class="bi bi-bar-chart fs-2 d-block mb-2 opacity-25"></i>
+                        Belum ada data kabupaten. Edit project untuk menambahkan info kabupaten.
+                    </div>
+                @else
+                    <canvas id="districtChart" style="max-height:220px"></canvas>
                 @endif
             </div>
         </div>
@@ -360,18 +382,18 @@ document.addEventListener('DOMContentLoaded', function () {
             '<div class="text-center text-muted small py-4">No data yet</div>';
     }
 
-    // ── Province Bar Chart ────────────────────────────
-    const provinceData = @json($provinceCounts);
-    const provinceCtx  = document.getElementById('provinceChart');
+    // ── Kabupaten Bar Chart ────────────────────────────
+    const districtData = @json($districtCounts);
+    const districtCtx  = document.getElementById('districtChart');
 
-    if (provinceCtx && Object.keys(provinceData).length > 0) {
-        new Chart(provinceCtx, {
+    if (districtCtx && Object.keys(districtData).length > 0) {
+        new Chart(districtCtx, {
             type: 'bar',
             data: {
-                labels: Object.keys(provinceData),
+                labels: Object.keys(districtData),
                 datasets: [{
-                    label: 'Projects',
-                    data: Object.values(provinceData),
+                    label: 'Jumlah Project',
+                    data: Object.values(districtData),
                     backgroundColor: '#1a3c5e',
                     borderRadius: 6,
                     borderSkipped: false,
@@ -390,7 +412,16 @@ document.addEventListener('DOMContentLoaded', function () {
                         grid: { color: '#f0f0f0' }
                     },
                     x: {
-                        ticks: { font: { size: 11 } },
+                        ticks: {
+                            font: { size: 11 },
+                            // Potong nama kabupaten yang terlalu panjang
+                            callback: function(val, index) {
+                                const label = this.getLabelForValue(val);
+                                return label.length > 15
+                                    ? label.substring(0, 15) + '…'
+                                    : label;
+                            }
+                        },
                         grid: { display: false }
                     }
                 }

@@ -10,48 +10,40 @@ use Illuminate\Support\Str;
 
 class ProjectFileController extends Controller
 {
-    /**
-     * Upload a KML, SHP, or document file.
-     * Files are stored at: storage/app/public/projects/{project_id}/files/
-     * This path becomes publicly accessible via the symlink we created earlier.
-     */
     public function store(Request $request, Project $project)
     {
         $request->validate([
-            'file'       => 'required|file|max:51200', // 50MB max
-            'file_type'  => 'required|in:kml,shp,document,other',
-            'notes'      => 'nullable|string|max:500',
-            'layer_color'=> 'nullable|string|max:7',
+            'file'         => 'required|file|max:51200',
+            'file_type'    => 'required|in:kml,document',
+            'notes'        => 'nullable|string|max:500',
+            'layer_color'  => 'nullable|string|max:7',
         ]);
 
-        // Validate file extension based on type
         $file      = $request->file('file');
         $extension = strtolower($file->getClientOriginalExtension());
         $fileType  = $request->file_type;
 
+        // ── Validasi ekstensi per tipe ─────────────────────
         $allowedExtensions = [
             'kml'      => ['kml'],
-            'shp'      => ['shp', 'zip', 'dbf', 'prj', 'shx'],
             'document' => ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt'],
-            'other'    => ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt',
-                           'kml', 'shp', 'zip'],
         ];
 
         if (!in_array($extension, $allowedExtensions[$fileType])) {
-            return back()
-                ->with('error', "Invalid file type. Allowed for {$fileType}: "
-                    . implode(', ', $allowedExtensions[$fileType]));
+            $allowed = implode(', ', $allowedExtensions[$fileType]);
+            return back()->with('error',
+                "File tidak valid untuk tipe {$fileType}. " .
+                "Ekstensi yang diizinkan: {$allowed}"
+            );
         }
 
-        // Build a clean stored filename: {project_code}_{timestamp}.{ext}
+        // ── Simpan file ────────────────────────────────────
         $storedName = Str::slug($project->code) . '_' . time() . '.' . $extension;
         $directory  = "projects/{$project->id}/files";
+        $path       = $file->storeAs($directory, $storedName, 'public');
 
-        // Store in storage/app/public/projects/{id}/files/
-        $path = $file->storeAs($directory, $storedName, 'public');
-
-        // Determine sort order (append to end)
-        $sortOrder = ProjectFile::where('project_id', $project->id)->max('sort_order') + 1;
+        $sortOrder = ProjectFile::where('project_id', $project->id)
+                                ->max('sort_order') + 1;
 
         ProjectFile::create([
             'project_id'    => $project->id,
@@ -66,30 +58,23 @@ class ProjectFileController extends Controller
             'notes'         => $request->notes,
         ]);
 
-        return back()->with('success', "File '{$file->getClientOriginalName()}' uploaded successfully.");
+        return back()->with('success',
+            "File '{$file->getClientOriginalName()}' berhasil diupload."
+        );
     }
 
-    /**
-     * Delete a file — removes DB record AND the actual file from disk.
-     */
     public function destroy(Project $project, ProjectFile $file)
     {
-        // Safety check: file must belong to this project
         abort_if($file->project_id !== $project->id, 403);
-
         Storage::disk('public')->delete($file->file_path);
         $file->delete();
 
-        return back()->with('success', "File '{$file->original_name}' deleted.");
+        return back()->with('success', "File '{$file->original_name}' dihapus.");
     }
 
-    /**
-     * Toggle KML layer visibility on/off (called via AJAX from the map page).
-     */
     public function toggle(Project $project, ProjectFile $file)
     {
         abort_if($file->project_id !== $project->id, 403);
-
         $file->update(['is_visible' => !$file->is_visible]);
 
         return response()->json([
@@ -98,16 +83,38 @@ class ProjectFileController extends Controller
         ]);
     }
 
-    /**
-     * Update KML layer color.
-     */
     public function color(Request $request, Project $project, ProjectFile $file)
     {
         abort_if($file->project_id !== $project->id, 403);
-
         $request->validate(['color' => 'required|string|max:7']);
         $file->update(['layer_color' => $request->color]);
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Tampilkan file PDF di browser viewer.
+     * Hanya untuk file bertipe 'document' dengan ekstensi pdf.
+     */
+    public function view(Project $project, ProjectFile $file)
+    {
+        // Safety checks
+        abort_if($file->project_id !== $project->id, 403);
+        abort_if($file->file_type !== 'document', 404);
+
+        $extension = strtolower(pathinfo($file->original_name, PATHINFO_EXTENSION));
+        abort_if($extension !== 'pdf', 404, 'Hanya file PDF yang bisa ditampilkan.');
+
+        // Pastikan file fisik ada di storage
+        abort_unless(
+            Storage::disk('public')->exists($file->file_path),
+            404,
+            'File tidak ditemukan di storage.'
+        );
+
+        return view('projects.file-viewer', [
+            'project' => $project,
+            'file'    => $file,
+        ]);
     }
 }
