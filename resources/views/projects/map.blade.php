@@ -9,7 +9,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
-    <script src="https://maps.googleapis.com/maps/api/js?key={{ $apiKey }}&v=weekly"></script>
+    <!-- Pin Google Maps API to version 3.65 because KmlLayer was removed in >=3.66 -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ $apiKey }}&v=3.65"></script>
+<!-- Library for converting KML to GeoJSON (future migration) -->
+<script src="https://unpkg.com/togeojson@0.16.0/dist/togeojson.min.js"></script>
 
     <style>
         * { box-sizing: border-box; }

@@ -65,6 +65,8 @@ class ProjectFileController extends Controller
 
     public function destroy(Project $project, ProjectFile $file)
     {
+        // Authorization: hanya admin/editor yang dapat menghapus
+        abort_unless(auth()->user()->canEdit(), 403);
         abort_if($file->project_id !== $project->id, 403);
         Storage::disk('public')->delete($file->file_path);
         $file->delete();
@@ -74,6 +76,8 @@ class ProjectFileController extends Controller
 
     public function toggle(Project $project, ProjectFile $file)
     {
+        // Authorization: hanya admin/editor yang dapat mengubah visibilitas
+        abort_unless(auth()->user()->canEdit(), 403);
         abort_if($file->project_id !== $project->id, 403);
         $file->update(['is_visible' => !$file->is_visible]);
 
