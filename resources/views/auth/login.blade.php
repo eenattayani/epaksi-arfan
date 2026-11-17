@@ -169,7 +169,7 @@
                 <i class="bi bi-water fs-3"></i>
             </div>
             <h4>Selamat Datang</h4>
-            <p>masukkan user: "admin@epksi.com", password: "epaksi2024!"</p>
+            <p>masukkan user: "admin@epaksi.com", password: "epaksi2024!"</p>
         </div>
 
         {{-- Form --}}

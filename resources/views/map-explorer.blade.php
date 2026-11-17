@@ -11,7 +11,7 @@
     <!-- Pin Google Maps API to version 3.65 because KmlLayer was removed in >=3.66 -->
     <script src="https://maps.googleapis.com/maps/api/js?key={{ $apiKey }}&v=3.65"></script>
     <!-- Library for converting KML to GeoJSON (future migration) -->
-    <script src="https://unpkg.com/togeojson@0.16.0/dist/togeojson.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -359,25 +359,157 @@ function initMap() {
     loadAllLayers();
 }
 
-function loadAllLayers() {
-    ALL_LAYERS.forEach(layer => {
-        const kml = new google.maps.KmlLayer({
-            url:                 layer.url + '?t=' + Date.now(),
-            map:                 map,
-            preserveViewport:    true,
-            suppressInfoWindows: false,
+
+// ── Sanitasi GeoJSON untuk mencegah error koordinat NaN / kosong dari KML ──
+function sanitizeGeoJson(geoJson) {
+    if (!geoJson || !Array.isArray(geoJson.features)) return geoJson;
+
+    function isValidCoord(c) {
+        return Array.isArray(c) && c.length >= 2 &&
+               typeof c[0] === 'number' && !isNaN(c[0]) &&
+               typeof c[1] === 'number' && !isNaN(c[1]);
+    }
+
+    function isValidGeometry(geom) {
+        if (!geom || !geom.type || !geom.coordinates) return false;
+        const coords = geom.coordinates;
+        if (!Array.isArray(coords) || coords.length === 0) return false;
+
+        switch (geom.type) {
+            case 'Point':
+                return isValidCoord(coords);
+            case 'LineString':
+            case 'MultiPoint':
+                return coords.length > 0 && coords.every(isValidCoord);
+            case 'Polygon':
+            case 'MultiLineString':
+                return coords.length > 0 && coords.every(ring => Array.isArray(ring) && ring.length > 0 && ring.every(isValidCoord));
+            case 'MultiPolygon':
+                return coords.length > 0 && coords.every(poly => Array.isArray(poly) && poly.length > 0 && poly.every(ring => Array.isArray(ring) && ring.every(isValidCoord)));
+            case 'GeometryCollection':
+                return Array.isArray(geom.geometries) && geom.geometries.every(isValidGeometry);
+            default:
+                return true;
+        }
+    }
+
+    geoJson.features = geoJson.features.filter(f => f && f.geometry && isValidGeometry(f.geometry));
+    return geoJson;
+}
+
+// ── Kustomisasi Ikon Tematik & Modern untuk Fitur Titik (Point) ──
+function getFeatureIcon(feature, layerColor) {
+    const geom = feature.getGeometry();
+    if (!geom || geom.getType() !== 'Point') return null;
+
+    const name = (feature.getProperty('name') || feature.getProperty('nama') || '').toLowerCase();
+    const kAset = (feature.getProperty('k_aset') || '').toLowerCase();
+    const stroke = feature.getProperty('stroke') || layerColor;
+
+    // 1. Bendung / Dam / Intake / Bangunan Utama
+    if (name.includes('bendung') || name.includes('dam') || name.includes('intake') || kAset.startsWith('b01')) {
+        return {
+            // Ikon Gerbang Bangunan Air / Bendung (SVG Shield Gate)
+            path: "M -7,-16 L 7,-16 L 7,0 L -7,0 Z M -4,-13 L 4,-13 L 4,-3 L -4,-3 Z",
+            fillColor: '#dc2626', // Merah tegas
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2,
+            scale: 1.25,
+            anchor: new google.maps.Point(0, -8),
+        };
+    }
+
+    // 2. Bangunan Bagi / Sadap / Pintu Air
+    if (name.includes('bangunan') || name.includes('bagi') || name.includes('sadap') || name.includes('pintu')) {
+        return {
+            // Ikon Belah Ketupat (Diamond khas Simbol GIS Bangunan Air)
+            path: "M 0,-18 L 8,-9 L 0,0 L -8,-9 Z",
+            fillColor: '#ea580c', // Oranye hidraulik
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2,
+            scale: 1.2,
+            anchor: new google.maps.Point(0, -9),
+        };
+    }
+
+    // 3. Titik Patok / Dimensi / Ujung Saluran / Default Point
+    return {
+        // Pin Peta Teardrop Modern dengan lubang/cincin di tengah
+        path: "M 0,0 C -2,-12 -8,-14 -8,-21 A 8,8 0 1,1 8,-21 C 8,-14 2,-12 0,0 Z M 0,-24 A 3,3 0 1,0 0,-18 A 3,3 0 1,0 0,-24 Z",
+        fillColor: stroke,
+        fillOpacity: 1,
+        strokeColor: '#ffffff',
+        strokeWeight: 1.5,
+        scale: 1.15,
+        anchor: new google.maps.Point(0, 0),
+    };
+}
+
+async function loadSingleLayerGeoJson(layer, onDone) {
+    try {
+        const response = await fetch(layer.url + '?t=' + Date.now());
+        if (!response.ok) throw new Error('Fetch failed: ' + response.statusText);
+        const text = await response.text();
+        const dom  = new DOMParser().parseFromString(text, 'text/xml');
+        const parser = window.toGeoJSON || window.togeojson;
+        if (!parser || typeof parser.kml !== 'function') throw new Error('toGeoJSON not ready');
+        const geoJson = parser.kml(dom);
+
+        const dataLayer = new google.maps.Data({ map: map });
+        const color = layer.color || layer.layer_color || '#1a3c5e';
+
+        dataLayer.setStyle(feature => {
+            const stroke = feature.getProperty('stroke') || color;
+            const fill   = feature.getProperty('fill') || color;
+            const isPoint= feature.getGeometry().getType() === 'Point';
+
+            // Kustomisasi Icon Point tematik modern
+            const icon = getFeatureIcon(feature, color);
+
+            return {
+                strokeColor:   stroke,
+                strokeWeight:  2.5,
+                strokeOpacity: 0.9,
+                fillColor:     fill,
+                fillOpacity:   0.35,
+                icon:          icon,
+            };
         });
 
-        kmlLayers[layer.id] = kml;
+        // Ambil SEMUA properti fitur termasuk ExtendedData
+        dataLayer.addListener('click', event => {
+            const properties = {};
+            event.feature.forEachProperty((val, key) => {
+                properties[key] = val;
+            });
+            showFeatureInfo(properties, event.latLng, layer);
+        });
 
-        // Click → show feature info with project context
-        kml.addListener('click', event => {
-            showFeatureInfo(event.featureData, event.latLng, layer);
+        // Sanitasi GeoJSON agar koordinat kosong/NaN tidak crash
+        const cleanGeoJson = sanitizeGeoJson(geoJson);
+        dataLayer.addGeoJson(cleanGeoJson);
+        kmlLayers[layer.id] = dataLayer;
+        if (typeof onDone === 'function') onDone();
+    } catch (e) {
+        console.warn('Error loading KML for layer ' + layer.id, e);
+        if (typeof onDone === 'function') onDone();
+    }
+}
+
+function loadAllLayers() {
+    let pending = ALL_LAYERS.length;
+    if (pending === 0) return;
+
+    ALL_LAYERS.forEach(layer => {
+        loadSingleLayerGeoJson(layer, () => {
+            pending--;
+            if (pending <= 0) {
+                fitAllLayers();
+            }
         });
     });
-
-    // Fit after a short delay to let layers settle
-    setTimeout(fitAllLayers, 1500);
 }
 
 // Focus on one project's layers
@@ -397,12 +529,17 @@ function focusProject(projectId) {
     ALL_LAYERS
         .filter(l => l.project_id === projectId)
         .forEach(l => {
-            const kml = kmlLayers[l.id];
-            if (kml) {
-                try {
-                    const vp = kml.getDefaultViewport();
-                    if (vp) { bounds.union(vp); hasAny = true; }
-                } catch (e) {}
+            const layer = kmlLayers[l.id];
+            if (layer && layer.getMap()) {
+                layer.forEach(feature => {
+                    const geometry = feature.getGeometry();
+                    if (geometry) {
+                        geometry.forEachLatLng(latLng => {
+                            bounds.extend(latLng);
+                            hasAny = true;
+                        });
+                    }
+                });
             }
         });
 
@@ -419,10 +556,17 @@ function fitAllLayers() {
     let   hasAny = false;
 
     Object.values(kmlLayers).forEach(layer => {
-        try {
-            const vp = layer.getDefaultViewport();
-            if (vp) { bounds.union(vp); hasAny = true; }
-        } catch (e) {}
+        if (layer && layer.getMap()) {
+            layer.forEach(feature => {
+                const geometry = feature.getGeometry();
+                if (geometry) {
+                    geometry.forEachLatLng(latLng => {
+                        bounds.extend(latLng);
+                        hasAny = true;
+                    });
+                }
+            });
+        }
     });
 
     if (hasAny) map.fitBounds(bounds);
@@ -442,15 +586,43 @@ function showFeatureInfo(featureData, latLng, layerMeta) {
         </div>
     `;
 
-    if (featureData.name) {
-        html += `<div class="fw-semibold mb-1">${featureData.name}</div>`;
+    const title = featureData.name || featureData.nama || featureData.nomenklatur || 'Fitur';
+    html += `<div class="fw-bold mb-2 pb-1 border-bottom" style="font-size:.85rem; color:#1a3c5e">
+                <i class="bi bi-geo-alt-fill me-1 text-primary"></i>${title}
+             </div>`;
+
+    // ExtendedData KML
+    const excludedKeys = ['name', 'description', 'styleUrl', 'styleHash', 'stroke', 'stroke-width', 'stroke-opacity', 'fill', 'fill-opacity', 'icon'];
+    const customAttrs = [];
+
+    Object.keys(featureData).forEach(key => {
+        if (!excludedKeys.includes(key)) {
+            const val = featureData[key];
+            if (val !== null && val !== undefined && String(val).trim() !== '') {
+                const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                customAttrs.push({ key: label, val: String(val) });
+            }
+        }
+    });
+
+    if (customAttrs.length > 0) {
+        html += '<div class="mb-2 pb-2 border-bottom" style="max-height:120px; overflow-y:auto">';
+        customAttrs.forEach(attr => {
+            html += `<div class="d-flex justify-content-between gap-2" style="font-size:.75rem; margin-bottom:2px">
+                         <span class="text-muted">${attr.key}:</span>
+                         <span class="fw-medium text-end">${attr.val}</span>
+                     </div>`;
+        });
+        html += '</div>';
     }
+
     if (featureData.description) {
-        html += `<div class="text-muted mb-2">${featureData.description}</div>`;
+        html += `<div class="text-muted mb-2 small" style="max-height:80px; overflow-y:auto">${featureData.description}</div>`;
     }
+
     if (latLng) {
-        html += `<div class="text-muted mb-2" style="font-size:.75rem;font-family:monospace">
-                     ${latLng.lat().toFixed(6)}, ${latLng.lng().toFixed(6)}
+        html += `<div class="text-muted mb-2" style="font-size:.73rem;font-family:monospace">
+                     <i class="bi bi-compass me-1"></i>${latLng.lat().toFixed(6)}, ${latLng.lng().toFixed(6)}
                  </div>`;
     }
 
